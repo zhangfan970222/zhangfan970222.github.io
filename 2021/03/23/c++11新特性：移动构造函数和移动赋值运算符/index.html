@@ -28,14 +28,14 @@
 <meta property="og:site_name" content="云深不知处">
 <meta property="og:description" content="对象移动说明：（1）A移动B，那么对象A我们就不能再使用了（2）并不是把内存中的数据从一个地址倒腾到另一个地址，只是所有者变更 移动构造函数和移动赋值运算符应该完成的功能：（1）完成必要的内存移动，斩断原对象和内存的关系（2）确保移动后原对象处于一种“即将被销毁也没什么问题”的一种状态，A–&gt;B,确保不在使用A，而是应该去使用B。 移动构造函数c++11引入移动构造函数，进一步提高程序效率。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="c:&#x2F;Users&#x2F;asus&#x2F;blog&#x2F;source&#x2F;_posts&#x2F;避免循环引用导致的shared-ptr指针的内存泄漏&#x2F;3.png">
-<meta property="og:image" content="c:&#x2F;Users&#x2F;asus&#x2F;blog&#x2F;source&#x2F;_posts&#x2F;避免循环引用导致的shared-ptr指针的内存泄漏&#x2F;4.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;03&#x2F;23&#x2F;c++11%E6%96%B0%E7%89%B9%E6%80%A7%EF%BC%9A%E7%A7%BB%E5%8A%A8%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%92%8C%E7%A7%BB%E5%8A%A8%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6&#x2F;3.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;03&#x2F;23&#x2F;c++11%E6%96%B0%E7%89%B9%E6%80%A7%EF%BC%9A%E7%A7%BB%E5%8A%A8%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%92%8C%E7%A7%BB%E5%8A%A8%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6&#x2F;4.png">
 <meta property="article:published_time" content="2021-03-23T11:51:19.041Z">
-<meta property="article:modified_time" content="2021-03-24T03:27:55.234Z">
+<meta property="article:modified_time" content="2021-03-24T03:33:33.910Z">
 <meta property="article:author" content="张帆">
 <meta property="article:tag" content="技术">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="c:&#x2F;Users&#x2F;asus&#x2F;blog&#x2F;source&#x2F;_posts&#x2F;避免循环引用导致的shared-ptr指针的内存泄漏&#x2F;3.png">
+<meta name="twitter:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;03&#x2F;23&#x2F;c++11%E6%96%B0%E7%89%B9%E6%80%A7%EF%BC%9A%E7%A7%BB%E5%8A%A8%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%92%8C%E7%A7%BB%E5%8A%A8%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6&#x2F;3.png">
     
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
@@ -204,7 +204,7 @@
 <figure class="image-bubble">
                 <div class="img-lightbox">
                     <div class="overlay"></div>
-                    <img src="C:\Users\asus\blog\source\_posts\避免循环引用导致的shared-ptr指针的内存泄漏\3.png" alt="" title="">
+                    <img src="3.png" alt="" title="">
                 </div>
                 <div class="image-caption"></div>
             </figure>
@@ -213,7 +213,7 @@
 <figure class="image-bubble">
                 <div class="img-lightbox">
                     <div class="overlay"></div>
-                    <img src="C:\Users\asus\blog\source\_posts\避免循环引用导致的shared-ptr指针的内存泄漏\4.png" alt="" title="">
+                    <img src="4.png" alt="" title="">
                 </div>
                 <div class="image-caption"></div>
             </figure>
@@ -237,7 +237,7 @@
     <div class="content">
         
 <span class="post-time">
-    最后更新时间：<time datetime="2021-03-24T03:27:55.234Z" itemprop="dateUpdated">2021-03-24 11:27:55</time>
+    最后更新时间：<time datetime="2021-03-24T03:33:33.910Z" itemprop="dateUpdated">2021-03-24 11:33:33</time>
 </span><br>
 
 
