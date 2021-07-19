@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>epoll原理理解 | 云深不知处 | 努力奋斗</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="技术">
+    <meta name="description" content="本文是学习了nginx高性能服务器之后对用到的epoll技术的理解，并且参考了wangbojing同学的github，他自己实现了一套epoll代码，能够加深自己对epoll的理解，其中可能会有理解错误之处，还望各位大佬指出。 epoll函数epoll采用的是事件驱动机制，在单独的进程或者线程里运行，没有进程或线程之间切换的消耗，因此会比较高效。 epoll_create()该函数是最开始调用的函">
+<meta property="og:type" content="article">
+<meta property="og:title" content="epoll原理理解">
+<meta property="og:url" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;index.html">
+<meta property="og:site_name" content="云深不知处">
+<meta property="og:description" content="本文是学习了nginx高性能服务器之后对用到的epoll技术的理解，并且参考了wangbojing同学的github，他自己实现了一套epoll代码，能够加深自己对epoll的理解，其中可能会有理解错误之处，还望各位大佬指出。 epoll函数epoll采用的是事件驱动机制，在单独的进程或者线程里运行，没有进程或线程之间切换的消耗，因此会比较高效。 epoll_create()该函数是最开始调用的函">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;10.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;11.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;12.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;13.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;14.png">
+<meta property="og:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;15.png">
+<meta property="article:published_time" content="2021-07-19T09:56:25.000Z">
+<meta property="article:modified_time" content="2021-07-19T11:58:10.102Z">
+<meta property="article:author" content="张帆">
+<meta property="article:tag" content="技术">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2021&#x2F;07&#x2F;19&#x2F;epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3&#x2F;10.png">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+<meta name="generator" content="Hexo 4.1.0"></head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/xlpic.jpg">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">张帆</h5>
+          <a href="mailto:zhang13186408552@163.com" title="zhang13186408552@163.com" class="mail">zhang13186408552@163.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                标签
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                分类
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/zhangfan970222" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://weibo.com/5833640468/profile?topnav=1&wvr=6&is_all=1" target="_blank" >
+                <i class="icon icon-lg icon-weibo"></i>
+                微博
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                时光
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">epoll原理理解</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">epoll原理理解</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2021-07-19T09:56:25.000Z" itemprop="datePublished" class="page-time">
+  2021-07-19
+</time>
+
+
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/c/">c++</a><ul class="article-category-list-child"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/c/epoll/">epoll</a><ul class="article-category-list-child"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/c/epoll/%E9%80%9A%E8%AE%AF/">通讯</a></li></ul></li></ul></li></ul>
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-1"><a class="post-toc-link" href="#epoll函数"><span class="post-toc-number">1.</span> <span class="post-toc-text">epoll函数</span></a><ol class="post-toc-child"><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#epoll-create"><span class="post-toc-number">1.1.</span> <span class="post-toc-text">epoll_create()</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#epoll-ctl"><span class="post-toc-number">1.2.</span> <span class="post-toc-text">epoll_ctl()</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#epoll-wait"><span class="post-toc-number">1.3.</span> <span class="post-toc-text">epoll_wait()</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#工作流程"><span class="post-toc-number">1.4.</span> <span class="post-toc-text">工作流程</span></a></li><li class="post-toc-item post-toc-level-2"><a class="post-toc-link" href="#epoll的两种工作模式"><span class="post-toc-number">1.5.</span> <span class="post-toc-text">epoll的两种工作模式</span></a></li></ol></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-epoll原理理解"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">epoll原理理解</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2021-07-19 17:56:25" datetime="2021-07-19T09:56:25.000Z"  itemprop="datePublished">2021-07-19</time>
+
+            
+	<ul class="article-category-list"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/c/">c++</a><ul class="article-category-list-child"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/c/epoll/">epoll</a><ul class="article-category-list-child"><li class="article-category-list-item"><a class="article-category-list-link" href="/categories/c/epoll/%E9%80%9A%E8%AE%AF/">通讯</a></li></ul></li></ul></li></ul>
+
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>本文是学习了nginx高性能服务器之后对用到的epoll技术的理解，并且参考了wangbojing同学的github，他自己实现了一套epoll代码，能够加深自己对epoll的理解，其中可能会有理解错误之处，还望各位大佬指出。</p>
+<h1 id="epoll函数"><a href="#epoll函数" class="headerlink" title="epoll函数"></a>epoll函数</h1><p>epoll采用的是事件驱动机制，在单独的进程或者线程里运行，没有进程或线程之间切换的消耗，因此会比较高效。</p>
+<h2 id="epoll-create"><a href="#epoll-create" class="headerlink" title="epoll_create()"></a><strong>epoll_create()</strong></h2><p>该函数是最开始调用的函数，用来创建一个epoll对象，其数据结构中包含红黑树和双向链表，并且我认为该数据结构是epoll设计的非常巧妙的地方。如下图所示，首先开辟了一段内存，名为eventpoll，其中包含指向红黑树的指针（rbr）以及指向双向链表的指针（rdlist）</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="10.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<h2 id="epoll-ctl"><a href="#epoll-ctl" class="headerlink" title="epoll_ctl()"></a><strong>epoll_ctl()</strong></h2><p>把一个socket及socket相关的事件添加到epoll对象中，目的是让该函数对象来监视这个socket，添加事件，就是往红黑树上添加节点。主要包含三种方式，添加：EPOLL_CTL_ADD，删除：EPOLL_CTL_DEL，修改：EPOLL_CTL_MOD。</p>
+<h2 id="epoll-wait"><a href="#epoll-wait" class="headerlink" title="epoll_wait()"></a><strong>epoll_wait()</strong></h2><p>所谓的事件驱动机制，就是由一些事件发生源【三次握手内核通知，事件发生源就是客户端】，通过事件收集器来收集和分发事件（调用函数处理），对于该函数而言，就是充当事件收集器的功能。该函数阻塞一小段时间并等待事件发生（用到了I/O复用），返回事件的集合，即遍历双向链表，把双向链表中的节点数据拷贝出去，拷贝完毕后将节点从双向链表中删除，但它仍然存在于红黑树中，并未从红黑树中删除，因为双向链表记录的是所有有数据的socket（TCP连接）。</p>
+<p>双向链表中的数据怎么来？内核向双向链表添加节点的四种情况：</p>
+<p>1.客户端完成三次握手</p>
+<p>2.客户端关闭连接</p>
+<p>3.客户端发送数据   read()或revc()</p>
+<p>4.服务端可以发送数据时   send()或write()</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="11.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<h2 id="工作流程"><a href="#工作流程" class="headerlink" title="工作流程"></a>工作流程</h2><p>当把用户socket添加到epoll_ctl()函数中时就会开辟一段名为epitem的内存，该内存中包含了rbn，rdlink，sockfd，event等，该epitem内存作为红黑树的一个节点，其中，rbn中有三个指针，父节点，左子树和右子树，rdlink作为双向链表来使用，包含了两个指针，分别指向前一个及下一个，sockfd表示与用户连接的套接字，event用来处理用户任务的函数，当建立三次握手时，会将该节点放在双向链表中，当连接完成之后，该节点会从双向链表中删除，当客户发送消息时，该节点又会被保存到双向链表中，处理完成后又会被删除，当客户端断开连接后也是一样。其中的主要结构如下图所示。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="12.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="13.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="14.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="15.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<h2 id="epoll的两种工作模式"><a href="#epoll的两种工作模式" class="headerlink" title="epoll的两种工作模式"></a>epoll的两种工作模式</h2><p>LT：水平触发/低速模式，这个事件没处理完，就会被 一直触发；</p>
+<p>ET：边缘触发/高速模式，这个事件通知只会出现一次，不管是否处理完；</p>
+<p>普遍认为ET比LT效率高一些，但是 ET编程难度比LT大一些；</p>
+<p>如何选择ET，还是LT？</p>
+<p>如果收发数据包有固定格式，建议采取LT，编程简单，清晰，写好了效率不见得低；</p>
+<p>如果收发数据包没有固定格式，可以考虑采用ET模式。</p>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2021-07-19T11:58:10.102Z" itemprop="dateUpdated">2021-07-19 19:58:10</time>
+</span><br>
+
+
+        
+    </div>
+    
+    <footer>
+        <a href="http://yoursite.com">
+            <img src="/img/xlpic.jpg" alt="张帆">
+            张帆
+        </a>
+    </footer>
+</blockquote>
+
+        
+<div class="page-reward">
+    <a id="rewardBtn" href="javascript:;" class="page-reward-btn waves-effect waves-circle waves-light">赏</a>
+</div>
+
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%8A%80%E6%9C%AF/" rel="tag">技术</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/&title=《epoll原理理解》 — 云深不知处&pic=http://yoursite.com/img/xlpic.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/&title=《epoll原理理解》 — 云深不知处&source=" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《epoll原理理解》 — 云深不知处&url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/&via=http://yoursite.com" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2021/07/19/%E5%90%8C%E6%AD%A5%E5%BC%82%E6%AD%A5%EF%BC%8C%E9%98%BB%E5%A1%9E%E9%9D%9E%E9%98%BB%E5%A1%9E%E7%90%86%E8%A7%A3/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">同步异步，阻塞非阻塞理解</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+<div id="reward" class="page-modal reward-lay">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <h3 class="reward-title">
+        <i class="icon icon-quote-left"></i>
+        谢谢大爷~
+        <i class="icon icon-quote-right"></i>
+    </h3>
+    <div class="reward-content">
+        
+        <div class="reward-code">
+            <img id="rewardCode" src="/img/weixin.jpg" alt="打赏二维码">
+        </div>
+        
+        <label class="reward-toggle">
+            <input id="rewardToggle" type="checkbox" class="reward-toggle-check"
+                data-wechat="/img/weixin.jpg" data-alipay="/img/zhifubao.jpg">
+            <div class="reward-toggle-ctrol">
+                <span class="reward-toggle-item wechat">微信</span>
+                <span class="reward-toggle-label"></span>
+                <span class="reward-toggle-item alipay">支付宝</span>
+            </div>
+        </label>
+        
+    </div>
+</div>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        站点总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        站点总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>张帆 &copy; 2015 - 2021</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/&title=《epoll原理理解》 — 云深不知处&pic=http://yoursite.com/img/xlpic.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/&title=《epoll原理理解》 — 云深不知处&source=" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《epoll原理理解》 — 云深不知处&url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/&via=http://yoursite.com" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://yoursite.com/2021/07/19/epoll%E5%8E%9F%E7%90%86%E7%90%86%E8%A7%A3/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: true };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+<script>
+(function() {
+    var OriginTitile = document.title, titleTime;
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            document.title = '快回来！';
+            clearTimeout(titleTime);
+        } else {
+            document.title = '欢迎回来!';
+            titleTime = setTimeout(function() {
+                document.title = OriginTitile;
+            },2000);
+        }
+    });
+})();
+</script>
+
+
+
+</body>
+</html>
